@@ -1,0 +1,16 @@
+sqlalchemy 
+pydantic-settings 
+python-jose[cryptography] 
+passlib[bcrypt] 
+python-multipart 
+alembic 
+httpx 
+email-validator
+uvicorn[standard]
+fastapi
+python-dotenv
+aiofiles
+pwdlib
+jwt
+sqlmodel
+jinja2

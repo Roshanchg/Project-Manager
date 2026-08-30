@@ -40,7 +40,7 @@ class Board(SQLModel, table=True):
     workspace_id: UUID = Field(foreign_key="workspaces.id",index=True,ondelete="CASCADE")
 
 
-class List(SQLModel,table=True):
+class Lists(SQLModel,table=True):
     __tablename__="lists" # pyright: ignore[reportAssignmentType]
     id:UUID =Field(default_factory=uuid.uuid4,primary_key=True)
     name:str =Field(min_length=3)

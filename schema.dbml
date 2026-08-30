@@ -1,0 +1,73 @@
+Table users {
+  id UUID [primary key]
+  email varchar [not null, unique]
+  password_hash varchar [not null]
+  full_name varchar [not null]
+}
+
+Table workspaces {
+  id UUID [primary key]
+  name varchar [not null]
+  color varchar [default: '#FFFFFF']
+}
+
+Table workspace_member {
+  workspace_id UUID [primary key]
+  user_id UUID [primary key]
+  role enum [default: 'member']
+}
+
+Table boards {
+  id UUID [primary key]
+  name varchar [not null]
+  bg_img_path varchar [null]
+  workspace_id UUID [not null]
+}
+
+Table lists {
+  id UUID [primary key]
+  name varchar [not null]
+  board_id UUID [not null]
+  position integer [default: 0]
+}
+
+Table cards {
+  id UUID [primary key]
+  name varchar [not null]
+  desc varchar [null]
+  severity varchar [default: 'Low']
+  tag varchar [default: 'No Tag']
+  due_date timestamp [default: 'CURRENT_TIMESTAMP']
+  list_id UUID [not null]
+}
+
+Table checklists {
+  id UUID [primary key]
+  name varchar [default: 'Checklist']
+  card_id UUID [not null]
+}
+
+Table checklist_items {
+  id UUID [primary key]
+  checklist_id UUID [not null]
+  val varchar [not null]
+  position integer [default: 0]
+  checked boolean [default: false]
+  checked_by UUID [null]
+}
+
+Enum WorkspaceRole {
+  owner
+  admin
+  member
+  viewer
+}
+
+Ref: users.id < workspace_member.user_id
+Ref: workspaces.id < workspace_member.workspace_id
+Ref: workspaces.id > boards.workspace_id // one-to-many
+Ref: boards.id > lists.board_id // one-to-many
+Ref: lists.id > cards.list_id // one-to-many
+Ref: cards.id > checklists.card_id // one-to-many
+Ref: checklists.id > checklist_items.checklist_id // one-to-many
+Ref: users.id < checklist_items.checked_by // many-to-one, SET NULL on delete

@@ -46,7 +46,26 @@ def getUserFromEmail(session:Session,email:str)->User|None:
     user=session.exec(select(User).where(User.email==email)).first()
     return user
 
+def removeUser(session:Session,userId:UUID):
+    user=getUserFromId(session=session,userID=userId)
+    if(user==None):
+        return
+    session.delete(user)
+    session.commit()
 
+def updateUser(session:Session,userId:UUID,data:dict)->User|None:
+    user=getUserFromId(session=session,userID=userId)
+    if user==None:
+        return
+    allowedKeys={"email","password_hash","full_name"}
+    filtered= {k:v for k,v in data.items() if k in allowedKeys}
+    
+    for k,v in filtered.items():
+        setattr(user,k,v)
+    session.commit()
+    session.refresh(user)
+    return user
+    
 
 def getWorkspaces(session:Session,offset:int =0,limit: int=10):
     workspaces=session.exec(select(Workspace).offset(offset).limit(limit)).all()
@@ -55,7 +74,26 @@ def getWorkspaces(session:Session,offset:int =0,limit: int=10):
 def getWorkspaceFromId(session:Session,workspaceId:UUID)->Workspace |None:
     workspace=session.get(Workspace,workspaceId)
     return workspace
-    
+
+def removeWorkspace(session:Session,workspaceId:UUID):
+    workspace=getWorkspaceFromId(session=session,workspaceId=workspaceId)
+    if workspace==None:
+        return
+    session.delete(workspace)
+    session.commit()
+
+def updateWorkspace(session:Session,workspaceId:UUID,data:dict)->Workspace|None:
+    workspace=getWorkspaceFromId(session=session,workspaceId=workspaceId)
+    if workspace==None:
+        return
+    allowedKeys={"name","color"}
+    filtered= {k:v for k,v in data.items() if k in allowedKeys}
+    for k,v in filtered.items():
+        setattr(workspace,k,v)
+    session.commit()
+    session.refresh(workspace)
+    return workspace
+
 
 
 def getWorkspaceMember(session:Session,offset:int =0,limit: int=10):
@@ -70,6 +108,29 @@ def getWorkmemberFromUserId(session:Session,userId:UUID):
 def getWorkspaceMemberFromID(session:Session,userId:UUID,workspaceId:UUID)->WorkspaceMember|None:
     workspaceMember= session.get(WorkspaceMember,(WorkspaceMember.user_id==userId,WorkspaceMember.workspace_id==workspaceId) )
     return workspaceMember
+
+def removeWorkspaceMember(session:Session,userId:UUID,workspaceId:UUID):
+    workspaceMember=getWorkspaceMemberFromID(session=session,userId=userId,workspaceId=workspaceId)
+    if workspaceMember==None:
+        return
+    session.delete(workspaceMember)
+    session.commit()
+
+def updateWorkspaceMember(session:Session,userId:UUID,workspaceId:UUID,data:dict)->WorkspaceMember|None:
+    workspaceMember=getWorkspaceMemberFromID(session=session,userId=userId,workspaceId=workspaceId)
+    if workspaceMember==None:
+        return
+    allowedKeys={"role"}
+    filtered= {k:v for k,v in data.items() if k in allowedKeys}
+    for k,v in filtered.items():
+        if k=="role":
+            if v not in WorkspaceRole:
+                continue    
+        setattr(workspaceMember,k,v)
+    session.commit()
+    session.refresh(workspaceMember)
+    return workspaceMember
+
 
 
 
@@ -86,6 +147,24 @@ def getBoardsOfWorkspace(session:Session,workspaceId:UUID):
     boards=session.exec(stmt).all()
     return boards
 
+def removeBoard(session:Session,boardId:UUID):
+    board=getBoardFromId(session=session,boardId=boardId)
+    if board==None:
+        return
+    session.delete(board)
+    session.commit()
+
+def updateBoard(session:Session,boardId:UUID,data:dict)->Board|None:
+    board=getBoardFromId(session=session,boardId=boardId)
+    if board==None:
+        return
+    allowedKeys={"name","bg_img_path","workspace_id"}
+    filtered= {k:v for k,v in data.items() if k in allowedKeys}
+    for k,v in filtered.items():
+        setattr(board,k,v)
+    session.commit()
+    session.refresh(board)
+    return board
 
 
 
@@ -102,6 +181,26 @@ def getAllListOfBoard(session:Session,boardId:UUID):
     _lists=session.exec(stmt).all()
     return _lists
 
+def removeList(session:Session,listId:UUID):
+    _list=getListFromId(session=session,listId=listId)
+    if _list==None:
+        return
+    session.delete(_list)
+    session.commit()
+
+def updateList(session:Session,listId:UUID,data:dict)->Lists|None:
+    _list=getListFromId(session=session,listId=listId)
+    if _list==None:
+        return
+    allowedKeys={"name","board_id","position"}
+    filtered= {k:v for k,v in data.items() if k in allowedKeys}
+    for k,v in filtered.items():
+        setattr(_list,k,v)
+    session.commit()
+    session.refresh(_list)
+    return _list
+
+
 
 
 def getCards(session:Session,offset:int =0,limit: int=10):
@@ -117,6 +216,26 @@ def getCardsFromList(session:Session,listId:UUID):
     cards=session.exec(stmt).all()
     return cards
 
+def removeCard(session:Session,cardId:UUID):
+    card=getCardFromId(session=session,cardId=cardId)
+    if card==None:
+        return
+    session.delete(card)
+    session.commit()
+
+def updateCard(session:Session,cardId:UUID,data:dict)->Card|None:
+    card=getCardFromId(session=session,cardId=cardId)
+    if card==None:
+        return
+    allowedKeys={"name","desc","severity","tag","due_date","list_id"}
+    filtered= {k:v for k,v in data.items() if k in allowedKeys}
+    for k,v in filtered.items():
+        setattr(card,k,v)
+    session.commit()
+    session.refresh(card)
+    return card
+
+
 
 
 def getChecklists(session:Session,offset:int =0,limit: int=10):
@@ -130,15 +249,57 @@ def getChecklistsFromCard(session:Session,cardId:UUID):
     stmt=select(Checklist).where(Checklist.card_id==cardId)
     return session.exec(stmt)
 
+def removeChecklist(session:Session,checklistId:UUID):
+    checklist=getChecklistFromId(session=session,checklistId=checklistId)
+    if checklist==None:
+        return
+    session.delete(checklist)
+    session.commit()
+
+def updateCHecklist(session:Session,checklistId:UUID,data:dict)->Checklist|None:
+    checklist=getChecklistFromId(session=session,checklistId=checklistId)
+    if checklist==None:
+        return
+    allowedKeys={"name","card_id"}
+    filtered= {k:v for k,v in data.items() if k in allowedKeys}
+    for k,v in filtered.items():
+        setattr(checklist,k,v)
+    session.commit()
+    session.refresh(checklist)
+    return checklist
+
+
+
+
 
 
 def getCheclistItems(session:Session,offset:int =0,limit: int=10):
     checklist_items=session.exec(select(ChecklistItem).offset(offset).limit(limit)).all()
     return checklist_items
 
-def getCheclistItemFromId(session:Session,checklistItemId:UUID)->ChecklistItem|None:
+def getChecklistItemFromId(session:Session,checklistItemId:UUID)->ChecklistItem|None:
     return session.get(ChecklistItem,ChecklistItem.id==checklistItemId)
 
 def getCheckListItemsOfChecklist(session:Session,checklistId:UUID):
     stmt=select(ChecklistItem,ChecklistItem.checklist_id==checklistId)
     return session.exec(stmt)
+
+def removeChecklistItem(session:Session,checklistItemId:UUID):
+    checklistItem=getChecklistItemFromId(session=session,checklistItemId=checklistItemId)
+    if checklistItem==None:
+        return
+    session.delete(checklistItem)
+    session.commit()
+
+def updateChecklistItem(session:Session,checklistItemId:UUID,data:dict)->ChecklistItem|None:
+    checklistItem=getChecklistItemFromId(session=session,checklistItemId=checklistItemId)
+    if checklistItem==None:
+        return
+    allowedKeys={"checklist_id","val","position","checked","checked_by"}
+    filtered= {k:v for k,v in data.items() if k in allowedKeys}
+    for k,v in filtered.items():
+        setattr(checklistItem,k,v)
+    session.commit()
+    session.refresh(checklistItem)
+    return checklistItem
+

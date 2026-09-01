@@ -115,7 +115,7 @@ def getWorkspacememberFromUserId(session:Session,userId:UUID):
     return userWorkspaces
 
 def getWorkspacesFromUserId(session:Session,userId:UUID):
-    stmt=select(WorkspaceMember).join(Workspace).where(WorkspaceMember.user_id==userId)
+    stmt=select(Workspace.id,Workspace.name,Workspace.color,WorkspaceMember.role).join(WorkspaceMember).where(WorkspaceMember.user_id==userId)
     userWorkspaces=session.exec(stmt).all()
     return userWorkspaces
 

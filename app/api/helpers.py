@@ -9,6 +9,8 @@ from app.models import database as db
 from app.models.tables import *
 import app.services.sessions as ses
 from sqlmodel import Session
+import app.schemas.users as USERSCHEMA
+import app.schemas.workspaces as WORKSPACESCHEMA
 
 def get_current_user(request:Request,session:SessionDep)->User:
     token=request.cookies.get("access_token")
@@ -56,3 +58,15 @@ def canRemoveWorkspace(session:Session,user_id:UUID,workspace_id:UUID)->bool:
     if workspace.role!=WorkspaceRole.OWNER:
         return  False
     return True
+
+def canUpdateWorkspace(session:Session,user_id:UUID,workspace_id:UUID)->bool:
+    workspace=db.getWorkspaceMemberFromID(session=session,userId=user_id,workspaceId=workspace_id)
+    if not workspace:
+        return False
+    if (workspace.role==WorkspaceRole.OWNER)or (workspace.role==WorkspaceRole.ADMIN):
+        return  True
+    return False
+
+
+
+

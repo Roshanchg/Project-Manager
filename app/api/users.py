@@ -5,14 +5,19 @@ import app.models.database as db
 import app.schemas.users as USERSCHEMA
 from app import config as config
 import app.services.authenticator as Auth
-from app.dependencies import SessionDep
+from app.dependencies import SessionDep,validateEmail
 from uuid import UUID
 from fastapi.responses import Response
 from app.api.helpers import get_current_user,get_user_from_ref_token
 from app.models.tables import *
 from app.services import sessions as ses
+from app.utils import utils
 
 router=APIRouter()
+
+userDependency=Annotated[User,Depends(get_current_user)]
+
+
 
 @router.get("/users")
 def getUsers(session:SessionDep,
@@ -32,11 +37,15 @@ def removeUser(session:SessionDep,userId:UUID):
     return {"success":True}
 
 @router.put("/updateUser")
-def updateUser(session:SessionDep,user:USERSCHEMA.UpdateUser):
-    
-    return user
+def updateUser(session:SessionDep,user:userDependency,formUser:USERSCHEMA.UpdateUser):
+    if USERSCHEMA.isValidUpdateUser(user=formUser):
+        updateData=formUser.model_dump(exclude_none=True)
+        if "password" in updateData:
+            updateData["password"]=utils.hashString(updateData["password"])
+        db.updateUser(session=session,userId=user.id,data= updateData)
+        return user
 @router.get("/me")
-def get_me(session:SessionDep,current_user:Annotated[User,Depends(get_current_user)]):
+def get_me(session:SessionDep,current_user:userDependency):
     return current_user
     
 @router.post("/login")

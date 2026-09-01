@@ -5,14 +5,15 @@ import app.models.database as db
 import app.schemas.users as USERSCHEMA
 from app import config as config
 import app.services.authenticator as Auth
-from app.dependencies import SessionDep
+from app.dependencies import SessionDep,validateColor
 from uuid import UUID
 from fastapi.responses import Response
-from app.api.helpers import get_current_user,get_user_from_ref_token,canRemoveWorkspace
+from app.api.helpers import get_current_user,get_user_from_ref_token,canRemoveWorkspace,canUpdateWorkspace
 from app.models.tables import *
 from app.services import sessions as ses
 import app.schemas.workspaces as WORKSPACESCHEMA
 import uuid 
+import re 
 
 router=APIRouter()
 
@@ -21,8 +22,15 @@ userDep=Annotated[User,Depends(get_current_user)]
 @router.get("/user/Workspace")
 def getMyWorkspaces(session:SessionDep,user:userDep):
     userWorkspaces=db.getWorkspacesFromUserId(session=session,userId=user.id)
-    print(userWorkspaces)
-    return {"workspace":userWorkspaces}
+    workspaceList=[]
+    for (id,name,color,role) in userWorkspaces:
+        workspaceList.append(
+            WORKSPACESCHEMA.ShowWorkspace(
+                id=id,
+                name=name,color=color,role=WorkspaceRole(role)
+            )
+        )
+    return workspaceList
     
 @router.post("/user/Workspace/new")
 def createNewWorkspace(session:SessionDep,user:userDep,crWorkspace:WORKSPACESCHEMA.CreateWorkspace):
@@ -33,7 +41,6 @@ def createNewWorkspace(session:SessionDep,user:userDep,crWorkspace:WORKSPACESCHE
         id=uuid.uuid4(),
         **crWorkspace.model_dump()
     )
-    print(newWorkspace)
     role=WorkspaceRole.OWNER
     newWorkspaceMember=WorkspaceMember(
         workspace_id=newWorkspace.id,
@@ -46,8 +53,16 @@ def createNewWorkspace(session:SessionDep,user:userDep,crWorkspace:WORKSPACESCHE
 
 
 @router.put("/user/Workspace/update")
-def updateWorkspace(ssession:SessionDep,user:userDep,upWorkspace:WORKSPACESCHEMA.UpdateWorkspace):
-    pass
+def updateWorkspace(session:SessionDep,user:userDep,upWorkspace:WORKSPACESCHEMA.UpdateWorkspace):
+    if WORKSPACESCHEMA.validUpdateWorkspace(upWorkspace=upWorkspace):
+        if canUpdateWorkspace(session=session,user_id=user.id,workspace_id=upWorkspace.id):
+            db.updateWorkspace(session=session,workspaceId=upWorkspace.id,data=upWorkspace.model_dump(
+                exclude={"id"},
+                exclude_none=True
+            ))
+            return {"message":"Workspace Updated"}
+        else: 
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED,"User doesnot have enough permission to edit this workspace.")
 
 @router.delete("/users/Workspace/delete")
 def removeWorkspace(session:SessionDep,user:userDep,workspace_id:UUID):

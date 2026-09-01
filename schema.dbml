@@ -56,6 +56,13 @@ Table checklist_items {
   checked_by UUID [null]
 }
 
+Table refresh_tokens{
+    id: UUID [primary key]
+    token:str [unique]
+    user_id:UUID [not null] 
+    expires_at:datetime [not null]
+}
+
 Enum WorkspaceRole {
   owner
   admin
@@ -71,3 +78,4 @@ Ref: lists.id > cards.list_id // one-to-many
 Ref: cards.id > checklists.card_id // one-to-many
 Ref: checklists.id > checklist_items.checklist_id // one-to-many
 Ref: users.id < checklist_items.checked_by // many-to-one, SET NULL on delete
+Ref: refresh_tokens.user_id > users.user_id

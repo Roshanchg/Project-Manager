@@ -1,9 +1,10 @@
 from fastapi import Depends
 
 import app.config as config
-from sqlmodel import create_engine,SQLModel,Session,select
+from sqlmodel import create_engine,SQLModel,Session,select,func
 from app.models.tables import * 
 from typing import Annotated
+
 
 _engine=None
 def get_engine():
@@ -18,7 +19,7 @@ def get_engine():
     return _engine
 
 def init_db():
-    engine=get_engine
+    engine=get_engine()
     if(engine==None):
         raise(BaseException("No Engine Found"))
     else:
@@ -30,7 +31,6 @@ def get_session():
     with Session(engine) as session:
         yield session
         
-SessionDep=Annotated[Session,Depends(get_session)]
 
 def getUsers(session:Session,offset:int=0,limit:int =10,):
     users=session.exec(select(User).offset(offset).limit(limit)).all()
@@ -66,6 +66,12 @@ def updateUser(session:Session,userId:UUID,data:dict)->User|None:
     session.refresh(user)
     return user
     
+def insertUser(session:Session,user:User):
+    session.add(user)
+    session.commit()
+    
+    
+
 
 def getWorkspaces(session:Session,offset:int =0,limit: int=10):
     workspaces=session.exec(select(Workspace).offset(offset).limit(limit)).all()
@@ -94,20 +100,36 @@ def updateWorkspace(session:Session,workspaceId:UUID,data:dict)->Workspace|None:
     session.refresh(workspace)
     return workspace
 
-
+def insertWorkspace(session:Session,workspace:Workspace):
+    session.add(workspace)
+    session.commit()
+    
 
 def getWorkspaceMember(session:Session,offset:int =0,limit: int=10):
     workspace_members=session.exec(select(WorkspaceMember).offset(offset).limit(limit)).all()
     return workspace_members
 
-def getWorkmemberFromUserId(session:Session,userId:UUID):
+def getWorkspacememberFromUserId(session:Session,userId:UUID):
     stmt=select(User.id,User.email,User.full_name).join(WorkspaceMember).join(Workspace).where(WorkspaceMember.user_id==userId)
     userWorkspaces=session.exec(stmt).all()
     return userWorkspaces
-    
+
+def getWorkspacesFromUserId(session:Session,userId:UUID):
+    stmt=select(WorkspaceMember).join(Workspace).where(WorkspaceMember.user_id==userId)
+    userWorkspaces=session.exec(stmt).all()
+    return userWorkspaces
+
 def getWorkspaceMemberFromID(session:Session,userId:UUID,workspaceId:UUID)->WorkspaceMember|None:
-    workspaceMember= session.get(WorkspaceMember,(WorkspaceMember.user_id==userId,WorkspaceMember.workspace_id==workspaceId) )
+    workspaceMember= session.get(WorkspaceMember,(workspaceId,userId) )
     return workspaceMember
+
+def getUserWorkspaceCount(session:Session,userId:UUID)->int:
+    stmt=select(func.count()).where(WorkspaceMember.user_id ==userId)
+    count=session.exec(stmt).first()
+    if not count: 
+        return 0
+    return count #type: ignore
+    
 
 def removeWorkspaceMember(session:Session,userId:UUID,workspaceId:UUID):
     workspaceMember=getWorkspaceMemberFromID(session=session,userId=userId,workspaceId=workspaceId)
@@ -131,6 +153,11 @@ def updateWorkspaceMember(session:Session,userId:UUID,workspaceId:UUID,data:dict
     session.refresh(workspaceMember)
     return workspaceMember
 
+def insertWorkspaceMember(session:Session,workspaceMember:WorkspaceMember,workspace:Workspace):
+    session.add(workspace)
+    session.add(workspaceMember)
+    session.commit()
+
 
 
 
@@ -139,7 +166,7 @@ def getBoards(session:Session,offset:int =0,limit: int=10):
     return boards
 
 def getBoardFromId(session:Session,boardId:UUID)-> Board|None:
-    board=session.get(Board,Board.id==boardId)
+    board=session.get(Board,boardId)
     return board
 
 def getBoardsOfWorkspace(session:Session,workspaceId:UUID):
@@ -166,6 +193,12 @@ def updateBoard(session:Session,boardId:UUID,data:dict)->Board|None:
     session.refresh(board)
     return board
 
+def insertBoard(session:Session,board:Board):
+    session.add(board)
+    session.commit()
+
+
+
 
 
 def getLists(session:Session,offset:int =0,limit: int=10):
@@ -173,7 +206,7 @@ def getLists(session:Session,offset:int =0,limit: int=10):
     return lists
 
 def getListFromId(session:Session,listId:UUID)->Lists|None:
-    _list=session.get(Lists,Lists.id==listId)
+    _list=session.get(Lists,listId)
     return _list
 
 def getAllListOfBoard(session:Session,boardId:UUID):
@@ -200,6 +233,10 @@ def updateList(session:Session,listId:UUID,data:dict)->Lists|None:
     session.refresh(_list)
     return _list
 
+def insertList(session:Session,_list:Lists):
+    session.add(_list)
+    session.commit()
+
 
 
 
@@ -208,7 +245,7 @@ def getCards(session:Session,offset:int =0,limit: int=10):
     return cards
 
 def getCardFromId(session:Session,cardId:UUID)->Card|None:
-    card=session.get(Card,Card.id==cardId)
+    card=session.get(Card,cardId)
     return card
 
 def getCardsFromList(session:Session,listId:UUID):
@@ -235,6 +272,10 @@ def updateCard(session:Session,cardId:UUID,data:dict)->Card|None:
     session.refresh(card)
     return card
 
+def insertCard(session:Session,card:Card):
+    session.add(card)
+    session.commit()
+
 
 
 
@@ -243,7 +284,7 @@ def getChecklists(session:Session,offset:int =0,limit: int=10):
     return checklists
 
 def getChecklistFromId(session:Session,checklistId:UUID)->Checklist |None:
-    return session.get(Checklist,Checklist.id==checklistId)
+    return session.get(Checklist,checklistId)
 
 def getChecklistsFromCard(session:Session,cardId:UUID):
     stmt=select(Checklist).where(Checklist.card_id==cardId)
@@ -268,6 +309,9 @@ def updateCHecklist(session:Session,checklistId:UUID,data:dict)->Checklist|None:
     session.refresh(checklist)
     return checklist
 
+def insertChecklist(session:Session,checklist:Checklist):
+    session.add(checklist)
+    session.commit()
 
 
 
@@ -278,10 +322,10 @@ def getCheclistItems(session:Session,offset:int =0,limit: int=10):
     return checklist_items
 
 def getChecklistItemFromId(session:Session,checklistItemId:UUID)->ChecklistItem|None:
-    return session.get(ChecklistItem,ChecklistItem.id==checklistItemId)
+    return session.get(ChecklistItem,checklistItemId)
 
 def getCheckListItemsOfChecklist(session:Session,checklistId:UUID):
-    stmt=select(ChecklistItem,ChecklistItem.checklist_id==checklistId)
+    stmt=select(ChecklistItem).where(ChecklistItem.checklist_id==checklistId)
     return session.exec(stmt)
 
 def removeChecklistItem(session:Session,checklistItemId:UUID):
@@ -303,3 +347,36 @@ def updateChecklistItem(session:Session,checklistItemId:UUID,data:dict)->Checkli
     session.refresh(checklistItem)
     return checklistItem
 
+def insertChecklistItem(session:Session,checklistItem:ChecklistItem):
+    session.add(checklistItem)
+    session.commit()
+    
+
+
+
+def getRefreshTokens(session:Session,offset:int =0,limit: int=10):
+    refreshTokens=session.exec(select(Refresh_Tokens).offset(offset).limit(limit)).all()
+    return refreshTokens
+
+def getRefreshTokenFromId(session:Session,refreshTokenId:UUID)->Refresh_Tokens|None:
+    token= session.get(Refresh_Tokens,refreshTokenId)
+    return token
+
+def getTokenObjOfToken(session:Session,tokenString:str):
+    stmt=select(Refresh_Tokens).where(Refresh_Tokens.token==tokenString)
+    return session.exec(stmt).first()
+
+def getTokenOfUser(session:Session,userId:UUID):
+    stmt=select(Refresh_Tokens).where(Refresh_Tokens.user_id==userId)
+    return session.exec(stmt).all()
+
+def removeRefreshToken(session:Session,refreshTokenId:UUID):
+    refreshToken=getRefreshTokenFromId(session=session,refreshTokenId=refreshTokenId)
+    if refreshToken==None:
+        return
+    session.delete(refreshToken)
+    session.commit()
+
+def insertRefreshToken(session:Session,refreshToken:Refresh_Tokens):
+    session.add(refreshToken)
+    session.commit()

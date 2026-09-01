@@ -15,3 +15,4 @@ jwt
 sqlmodel
 jinja2
 alembic
+pwdlib[argon2]

@@ -17,7 +17,6 @@ class Workspace(SQLModel, table=True):
     name: str = Field(min_length=5, max_length=100, index=True)
     color: str = Field(default="#FFFFFF",
                       max_length=7,
-                      min_length=7,
                       regex=r"^#[0-9a-fA-F]{6}$")
 
 class WorkspaceRole(str, Enum):
@@ -71,3 +70,11 @@ class Card(SQLModel,table=True):
     tag:str = Field(default="No Tag",max_length=20)
     due_date:datetime =Field(default_factory=lambda:datetime.now(timezone.utc))
     list_id: UUID =Field(foreign_key="lists.id",index=True,ondelete="CASCADE")
+    
+class Refresh_Tokens(SQLModel,table=True):
+    __tablename__="refresh_tokens" #type: ignore
+    id: UUID=Field(default_factory=uuid.uuid4,primary_key=True)
+    token:str=Field(unique=True,index=True)
+    user_id:UUID= Field(foreign_key="users.id",index=True,ondelete="CASCADE")
+    expires_at:datetime
+    

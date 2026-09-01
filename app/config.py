@@ -18,3 +18,6 @@ else:
     DB_NAME=os.getenv("DB_NAME")
     DB_USERNAME=os.getenv("DB_USERNAME")
     DB_PASSWORD=os.getenv("DB_PASSWORD")
+    
+SECRET_KEY=os.getenv("JWT_SECRET_KEY")
+ALGORITHM=os.getenv("JWT_ALGORITHM")

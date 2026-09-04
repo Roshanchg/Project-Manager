@@ -1,9 +1,10 @@
 from fastapi import Depends
 
 import app.config as config
-from sqlmodel import create_engine,SQLModel,Session,select,func
+from sqlmodel import create_engine,SQLModel,Session,select,func,asc,desc
 from app.models.tables import * 
 from typing import Annotated
+from fastapi import HTTPException,status
 
 
 _engine=None
@@ -185,7 +186,7 @@ def updateBoard(session:Session,boardId:UUID,data:dict)->Board|None:
     board=getBoardFromId(session=session,boardId=boardId)
     if board==None:
         return
-    allowedKeys={"name","bg_img_path","workspace_id"}
+    allowedKeys={"name","bg_img_path"}
     filtered= {k:v for k,v in data.items() if k in allowedKeys}
     for k,v in filtered.items():
         setattr(board,k,v)
@@ -223,9 +224,15 @@ def removeList(session:Session,listId:UUID):
 
 def updateList(session:Session,listId:UUID,data:dict)->Lists|None:
     _list=getListFromId(session=session,listId=listId)
+    board=session.exec(select(Board).where(Board.id ==_list.board_id).with_for_update()).one() #pyright: ignore
+    _list=getListFromId(session=session,listId=listId)
     if _list==None:
         return
-    allowedKeys={"name","board_id","position"}
+    allowedKeys={"name","position"}
+    pos= data.get("position")
+    if pos:
+        if doesListCollide(session=session,newPosition=pos,board_id=_list.board_id):
+            raise HTTPException(status.HTTP_403_FORBIDDEN,"Another list exists in this position.")
     filtered= {k:v for k,v in data.items() if k in allowedKeys}
     for k,v in filtered.items():
         setattr(_list,k,v)
@@ -234,10 +241,26 @@ def updateList(session:Session,listId:UUID,data:dict)->Lists|None:
     return _list
 
 def insertList(session:Session,_list:Lists):
+    board=session.exec(select(Board).where(Board.id ==_list.board_id).with_for_update()).one() #pyright: ignore
+    newPos=getNewPositionForList(session=session,board_id=_list.board_id)
+    if doesListCollide(session=session,newPosition=_list.position,board_id=_list.board_id):
+            raise HTTPException(status.HTTP_403_FORBIDDEN,"Another list exists in this position.")
     session.add(_list)
     session.commit()
 
+def doesListCollide(session:Session,newPosition:int,board_id:UUID)->bool:
+    stmt=select(Lists).where(Lists.board_id==board_id,Lists.position==newPosition)
+    lists=session.exec(stmt).all()
+    if lists:
+        return True
+    return False
 
+def getNewPositionForList(session:Session,board_id:UUID)->int:
+    stmt=select(func.max(Lists.position)).where(Lists.board_id==board_id)
+    max_pos=session.exec(stmt).first()
+    new_pos=(max_pos or 0)+1
+    return new_pos
+    
 
 
 def getCards(session:Session,offset:int =0,limit: int=10):
@@ -249,7 +272,7 @@ def getCardFromId(session:Session,cardId:UUID)->Card|None:
     return card
 
 def getCardsFromList(session:Session,listId:UUID):
-    stmt=select(Card).where(Card.list_id==listId)
+    stmt=select(Card).where(Card.list_id==listId).order_by(asc(Card.due_date))
     cards=session.exec(stmt).all()
     return cards
 
@@ -339,7 +362,11 @@ def updateChecklistItem(session:Session,checklistItemId:UUID,data:dict)->Checkli
     checklistItem=getChecklistItemFromId(session=session,checklistItemId=checklistItemId)
     if checklistItem==None:
         return
-    allowedKeys={"checklist_id","val","position","checked","checked_by"}
+    allowedKeys={"val","position","checked","checked_by"}
+    newPos=data.get("position")
+    if newPos:
+        if doesChecklistItemCollide(session=session,newPosition=newPos,checklist_id=checklistItem.checklist_id):
+            raise HTTPException(status.HTTP_403_FORBIDDEN,"Another checklist item exists in this position.")
     filtered= {k:v for k,v in data.items() if k in allowedKeys}
     for k,v in filtered.items():
         setattr(checklistItem,k,v)
@@ -348,9 +375,17 @@ def updateChecklistItem(session:Session,checklistItemId:UUID,data:dict)->Checkli
     return checklistItem
 
 def insertChecklistItem(session:Session,checklistItem:ChecklistItem):
+    if doesChecklistItemCollide(session=session,newPosition=checklistItem.position,checklist_id=checklistItem.checklist_id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN,"Another checklist item exists in this position.")
     session.add(checklistItem)
     session.commit()
     
+def doesChecklistItemCollide(session:Session,newPosition:int,checklist_id:UUID)->bool:
+    stmt=select(ChecklistItem).where(ChecklistItem.checklist_id==checklist_id,ChecklistItem.position==newPosition)
+    _items=session.exec(stmt).all()
+    if _items:
+        return True
+    return False
 
 
 

@@ -19,7 +19,7 @@ router=APIRouter()
 
 userDep=Annotated[User,Depends(get_current_user)]
 
-@router.get("/user/Workspace")
+@router.get("/workspaces")
 def getMyWorkspaces(session:SessionDep,user:userDep):
     userWorkspaces=db.getWorkspacesFromUserId(session=session,userId=user.id)
     workspaceList=[]
@@ -32,7 +32,7 @@ def getMyWorkspaces(session:SessionDep,user:userDep):
         )
     return workspaceList
     
-@router.post("/user/Workspace/new")
+@router.post("/workspaces/new")
 def createNewWorkspace(session:SessionDep,user:userDep,crWorkspace:WORKSPACESCHEMA.CreateWorkspace):
     totalWorkspaces=db.getUserWorkspaceCount(session=session,userId=user.id)
     if totalWorkspaces>=5:
@@ -52,7 +52,7 @@ def createNewWorkspace(session:SessionDep,user:userDep,crWorkspace:WORKSPACESCHE
     return {"message":"Added new workspace"}
 
 
-@router.put("/user/Workspace/update")
+@router.put("/workspaces/update")
 def updateWorkspace(session:SessionDep,user:userDep,upWorkspace:WORKSPACESCHEMA.UpdateWorkspace):
     if WORKSPACESCHEMA.validUpdateWorkspace(upWorkspace=upWorkspace):
         if canUpdateWorkspace(session=session,user_id=user.id,workspace_id=upWorkspace.id):
@@ -64,7 +64,7 @@ def updateWorkspace(session:SessionDep,user:userDep,upWorkspace:WORKSPACESCHEMA.
         else: 
             raise HTTPException(status.HTTP_401_UNAUTHORIZED,"User doesnot have enough permission to edit this workspace.")
 
-@router.delete("/users/Workspace/delete")
+@router.delete("/workspaces/delete")
 def removeWorkspace(session:SessionDep,user:userDep,workspace_id:UUID):
     if(canRemoveWorkspace(session=session,user_id=user.id,workspace_id=workspace_id)):
         db.removeWorkspace(session=session,workspaceId=workspace_id)

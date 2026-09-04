@@ -11,9 +11,9 @@ from fastapi.responses import Response
 from app.api.helpers import get_current_user,get_user_from_ref_token,canRemoveWorkspace,canUpdateWorkspace
 from app.models.tables import *
 from app.services import sessions as ses
-import app.schemas.workspaces as SCHEMA
 import uuid 
 import app.schemas.boards as BOARDSCHEMA
+
 
 import re 
 

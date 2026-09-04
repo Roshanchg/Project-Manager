@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field,Index
 import pydantic
 import uuid
 from enum import Enum
@@ -45,6 +45,7 @@ class Lists(SQLModel,table=True):
     name:str =Field(min_length=3)
     board_id: UUID =Field(foreign_key="boards.id",index=True,ondelete="CASCADE")
     position:int =Field(default=0)
+    __table_args__ = (Index("ix_board_position", "board_id", "position"),)
 
 class Checklist(SQLModel,table=True):
     __tablename__="checklists" #pyright: ignore
@@ -60,6 +61,8 @@ class ChecklistItem(SQLModel,table=True):
     position:int = Field(default=0)
     checked: bool = Field(default=False)
     checked_by: UUID | None =Field(foreign_key="users.id",index=True,ondelete="SET NULL")
+    __table_args__ = (Index("ix_item_position", "checklist_id", "position"),)
+    
 
 class Card(SQLModel,table=True):
     __tablename__="cards" # pyright: ignore[reportAssignmentType]
@@ -68,7 +71,7 @@ class Card(SQLModel,table=True):
     desc:str|None = Field()
     severity: str = Field(default="Low",max_length=20)
     tag:str = Field(default="No Tag",max_length=20)
-    due_date:datetime =Field(default_factory=lambda:datetime.now(timezone.utc))
+    due_date:datetime =Field(default_factory=lambda:datetime.now(timezone.utc),index=True)
     list_id: UUID =Field(foreign_key="lists.id",index=True,ondelete="CASCADE")
     
 class Refresh_Tokens(SQLModel,table=True):

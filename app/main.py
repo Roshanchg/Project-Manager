@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from app.models import database
 from typing import Annotated
 from app.models import database as db
-from app.api import users,boards,workspace
+from app.api import users,boards,workspace,lists,cards,checklistItems,checklists
 SessionDep=Annotated[Session,Depends(db.get_session)]
       
     
@@ -25,7 +25,9 @@ app=FastAPI(
 app.include_router(users.router,prefix="/api/v1")
 app.include_router(boards.router,prefix="/api/v1")
 app.include_router(workspace.router,prefix="/api/v1")
-
+app.include_router(cards.router,prefix="/api/v1")
+app.include_router(checklists.router,prefix="/api/v1")
+app.include_router(checklistItems.router,prefix="/api/v1")
 
 
 

@@ -69,4 +69,3 @@ def canUpdateWorkspace(session:Session,user_id:UUID,workspace_id:UUID)->bool:
 
 
 
-

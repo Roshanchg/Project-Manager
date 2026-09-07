@@ -12,62 +12,70 @@ from app.api.helpers import get_current_user,get_user_from_ref_token,canRemoveWo
 from app.models.tables import *
 from app.services import sessions as ses
 import uuid 
-import app.schemas.boards as BOARDSCHEMA
+import app.schemas.lists as LISTSCHEMA
 
 
 import re 
 
 
 userDep=Annotated[User,Depends(get_current_user)]
-
 router=APIRouter()
 
-@router.get("/boards/{workspace_id}")
-def getMyBoards(session:SessionDep,user:userDep,workspace_id:UUID):
-    userBoards=db.getBoardsOfWorkspace(session=session,workspaceId=workspace_id)
-    boardLists=[]
-    for board in userBoards:
-        boardLists.append(
-            BOARDSCHEMA.ShowBoard(
-                id=board.id,
-                name=board.name,
-                bg_img_path=board.bg_img_path
+@router.get("/lists/{board_id}")
+def getMyLists(session:SessionDep,user:userDep,board_id:UUID):
+    boardLists=db.getAllListOfBoard(session=session,boardId=board_id)
+    lists=[]
+    for l in boardLists:
+        lists.append(
+            LISTSCHEMA.ShowList(
+                id=l.id,
+                name=l.name,
+                position=l.position
             )
         )
     return boardLists
     
-@router.post("/boards/{workspace_id}/new")
-def createNewBoard(session:SessionDep,user:userDep,crBoard:BOARDSCHEMA.CreateBoard,workspace_id:UUID):
+@router.post("/lists/{board_id}/new")
+def createNewList(session:SessionDep,user:userDep,crList:LISTSCHEMA.CreateList,board_id:UUID):
+    workspace_id=db.getWorkspaceIdFrom(session=session,option=db.ID_OPTIONS.BOARD,id=board_id)
+    if not workspace_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,"Could not find workspace for this board")
     if canUpdateWorkspace(session=session,user_id=user.id,workspace_id=workspace_id):
-        newBoard=Board(
+        newList=Lists(
             id=uuid.uuid4(),
-            **crBoard.model_dump(),
-            workspace_id=workspace_id
+            **crList.model_dump(),
+            board_id=board_id
         )
-        db.insertBoard(session=session,board=newBoard)
-        return {"message":"Added new Board"}
+        db.insertList(session=session,_list=newList)
+        return {"message":"Added new list"}
     else:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED,"User doesnot have enough permission to add board on this workspace.")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED,"User doesnot have enough permission to add a list on this workspace.")
 
 
-@router.put("/boards/{workspace_id}/update")
-def updateBoard(session:SessionDep,user:userDep,upBoard:BOARDSCHEMA.UpdateBoard,workspace_id:UUID):
-    if BOARDSCHEMA.isValidUpdate(board=upBoard):
+@router.put("/list/{board_id}/update")
+def updateList(session:SessionDep,user:userDep,upList:LISTSCHEMA.UpdateList,board_id:UUID):
+    if LISTSCHEMA.isValidUpdate(upList):
+        workspace_id=db.getWorkspaceIdFrom(session=session,option=db.ID_OPTIONS.BOARD,id=board_id)
+        if not workspace_id:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST,"Could not find workspace for this board")
         if canUpdateWorkspace(session=session,user_id=user.id,workspace_id=workspace_id):
-            db.updateBoard(session=session,boardId=upBoard.id,data=upBoard.model_dump(
-                exclude={"id","workspace_id"},
+            db.updateList(session=session,listId=upList.id,data=upList.model_dump(
+                exclude={"id","board_id"},
                 exclude_none=True
             ))
             return {"message":"Board Updated"}
         else: 
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED,"User doesnot have enough permission to edit boards in this workspace.")
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED,"User doesnot have enough permission to edit lists in this workspace.")
     else:
         raise HTTPException(406,"Invalid Update Field")
 
-@router.delete("/boards/{workspace_id}/delete")
-def removeBoard(session:SessionDep,user:userDep,workspace_id:UUID,board_id:UUID):
+@router.delete("/list/{board_id}/delete")
+def removeList(session:SessionDep,user:userDep,board_id:UUID,list_id:UUID):
+    workspace_id=db.getWorkspaceIdFrom(session=session,option=db.ID_OPTIONS.BOARD,id=board_id)
+    if not workspace_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,"Could not find workspace for this board")
     if(canUpdateWorkspace(session=session,user_id=user.id,workspace_id=workspace_id)):
-        db.removeBoard(session=session,boardId=board_id)
-        return {"message":"Removed the board"}
+        db.removeList(session=session,listId=list_id)
+        return {"message":"Removed the List"}
     else:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED,"User doesnot have the permission to remove boards in this workspace.")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED,"User doesnot have the permission to remove Lists in this workspace.")

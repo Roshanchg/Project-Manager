@@ -243,6 +243,7 @@ def updateList(session:Session,listId:UUID,data:dict)->Lists|None:
 def insertList(session:Session,_list:Lists):
     board=session.exec(select(Board).where(Board.id ==_list.board_id).with_for_update()).one() #pyright: ignore
     newPos=getNewPositionForList(session=session,board_id=_list.board_id)
+    _list.position=newPos
     if doesListCollide(session=session,newPosition=_list.position,board_id=_list.board_id):
             raise HTTPException(status.HTTP_403_FORBIDDEN,"Another list exists in this position.")
     session.add(_list)
@@ -320,7 +321,7 @@ def removeChecklist(session:Session,checklistId:UUID):
     session.delete(checklist)
     session.commit()
 
-def updateCHecklist(session:Session,checklistId:UUID,data:dict)->Checklist|None:
+def updateChecklist(session:Session,checklistId:UUID,data:dict)->Checklist|None:
     checklist=getChecklistFromId(session=session,checklistId=checklistId)
     if checklist==None:
         return
@@ -360,6 +361,8 @@ def removeChecklistItem(session:Session,checklistItemId:UUID):
 
 def updateChecklistItem(session:Session,checklistItemId:UUID,data:dict)->ChecklistItem|None:
     checklistItem=getChecklistItemFromId(session=session,checklistItemId=checklistItemId)
+    checklist=session.exec(select(Checklist).where(Checklist.id ==checklistItem.checklist_id).with_for_update()).one() #pyright: ignore 
+    checklistItem=getChecklistItemFromId(session=session,checklistItemId=checklistItemId)
     if checklistItem==None:
         return
     allowedKeys={"val","position","checked","checked_by"}
@@ -375,6 +378,9 @@ def updateChecklistItem(session:Session,checklistItemId:UUID,data:dict)->Checkli
     return checklistItem
 
 def insertChecklistItem(session:Session,checklistItem:ChecklistItem):
+    checklist=session.exec(select(Checklist).where(Checklist.id ==checklistItem.checklist_id).with_for_update()).one() #pyright: ignore 
+    newPos=getNewPositionForChecklistItem(session=session,checklist_id=checklist.id)
+    checklistItem.position=newPos
     if doesChecklistItemCollide(session=session,newPosition=checklistItem.position,checklist_id=checklistItem.checklist_id):
         raise HTTPException(status.HTTP_403_FORBIDDEN,"Another checklist item exists in this position.")
     session.add(checklistItem)
@@ -386,6 +392,14 @@ def doesChecklistItemCollide(session:Session,newPosition:int,checklist_id:UUID)-
     if _items:
         return True
     return False
+
+def getNewPositionForChecklistItem(session:Session,checklist_id:UUID)->int:
+    stmt=select(func.max(ChecklistItem.position)).where(ChecklistItem.checklist_id==checklist_id)
+    max_pos=session.exec(stmt).first()
+    new_pos=(max_pos or 0)+1
+    return new_pos
+    
+
 
 
 
@@ -415,3 +429,58 @@ def removeRefreshToken(session:Session,refreshTokenId:UUID):
 def insertRefreshToken(session:Session,refreshToken:Refresh_Tokens):
     session.add(refreshToken)
     session.commit()
+
+
+
+
+
+
+
+# helpers
+class ID_OPTIONS(str,Enum):
+    BOARD="Board",
+    LIST="List",
+    CARD="Card",
+    CHECKLIST="Checklist"
+    CHECKLIST_ITEM="ChecklistItem"
+    
+def getWorkspaceIdFrom(session:Session,option:ID_OPTIONS,id:UUID)->UUID | None:
+    match(option):
+        case ID_OPTIONS.BOARD:
+            stmt_board = (select(Workspace.id).
+                          join(Board, Board.workspace_id == Workspace.id). # type: ignore
+                          where(Board.id == id)) 
+            val=session.exec(stmt_board)
+            return val.first()
+        case ID_OPTIONS.LIST:
+            stmt_list = (
+                select(Workspace.id)
+                .join(Board, Board.workspace_id == Workspace.id) #type: ignore
+                .join(Lists, Lists.board_id == Board.id) #type: ignore
+                .where(Lists.id == list_id) #type: ignore
+            )
+            val=session.exec(stmt_list)
+            return val.first()
+        case ID_OPTIONS.CARD:
+            stmt_card = (
+                select(Workspace.id)
+                .join(Board, Board.workspace_id == Workspace.id) #type: ignore
+                .join(Lists, Lists.board_id == Board.id) #type: ignore
+                .join(Card, Card.list_id == Lists.id) #type: ignore
+                .where(Card.id == card_id) #type: ignore
+            )
+            val=session.exec(stmt_card)
+            return val.first()
+        case ID_OPTIONS.CHECKLIST:
+            stmt_checklist = (
+                select(Workspace.id)
+                .join(Board, Board.workspace_id == Workspace.id) #type: ignore
+                .join(Lists, Lists.board_id == Board.id) #type: ignore
+                .join(Card, Card.list_id == Lists.id) #type: ignore 
+                .join(Checklist, Checklist.card_id == Card.id) #type: ignore 
+                .where(Checklist.id == checklist_id) #type: ignore
+            )
+            val=session.exec(stmt_checklist)
+            return val.first()
+        case ID_OPTIONS.CHECKLIST_ITEM:
+            pass

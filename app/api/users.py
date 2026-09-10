@@ -36,6 +36,13 @@ def removeUser(session:SessionDep,userId:UUID):
     db.removeUser(session=session,userId=userId)
     return {"success":True}
 
+@router.delete("/deleteMe")
+def removeMe(session:SessionDep,user:userDependency,response:Response):
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    db.removeUser(session=session,userId=user.id)
+    return {"success":True}
+
 @router.put("/updateUser")
 def updateUser(session:SessionDep,user:userDependency,formUser:USERSCHEMA.UpdateUser):
     if USERSCHEMA.isValidUpdateUser(user=formUser):
@@ -75,7 +82,7 @@ def refreshAuth(session:SessionDep,response:Response,request:Request,current_use
     response.set_cookie("access_token",newaccessToken,httponly=True,secure=True,max_age=900)
     return {"message":"New Access Token Set"}
 
-@router.get("/logout")
+@router.post("/logout")
 def logoutUser(session:SessionDep,request:Request,response:Response):
     refreshToken=request.cookies.get("refresh_token")
     response.delete_cookie("access_token")

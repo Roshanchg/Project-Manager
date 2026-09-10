@@ -10,7 +10,9 @@ from app.models import database as db
 from app.api import users,boards,workspace,lists,cards,checklistItems,checklists
 SessionDep=Annotated[Session,Depends(db.get_session)]
       
-    
+
+
+
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     db.init_db()
@@ -31,6 +33,4 @@ app.include_router(checklistItems.router,prefix="/api/v1")
 
 
 
-# app.mount("/static",StaticFiles(directory=config.STATIC_DIR))
 
-# templates=Jinja2Templates(directory=config.TEMPLATES_DIR)

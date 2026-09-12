@@ -30,7 +30,7 @@
 				full_name: fullName
 			});
 			await login({ email, password });
-			await goto(resolve('/dashboard'));
+			await goto(resolve('/workspace'));
 		} catch (err) {
 			errorMessage = err instanceof ApiError ? err.message : 'Something went wrong';
 		} finally {
@@ -125,6 +125,7 @@
 		margin: 0 0 0.5rem;
 		font-size: 1.5rem;
 		color: #172b4d;
+		text-align: center;
 	}
 
 	.field {

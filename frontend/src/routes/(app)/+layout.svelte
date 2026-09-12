@@ -7,6 +7,9 @@
 	import type { User } from '$lib/types';
 	import { onMount } from 'svelte';
 
+	import Topbar from '$lib/components/layout/Topbar.svelte';
+	import Sidebar from '$lib/components/layout/Sidebar.svelte';
+
 	let { children } = $props();
 
 	let user = $state<User | null>(null);
@@ -31,8 +34,16 @@
 
 {#if checking}
 	<div class="guard-loading">Loading...</div>
-{:else if user}
-	{@render children()}
+{:else if userStore.user}
+	<div class="shell">
+		<Sidebar />
+		<div class="right">
+			<Topbar />
+			<main class="content">
+				{@render children()}
+			</main>
+		</div>
+	</div>
 {/if}
 
 <style>
@@ -42,5 +53,24 @@
 		place-items: center;
 		font-family: system-ui, sans-serif;
 		color: #5e6c84;
+	}
+
+	.shell {
+		display: grid;
+		grid-template-columns: minmax(220px, 12%) minmax(0, 1fr);
+		height: 100vh;
+		padding: 0;
+		margin: 0;
+		overflow: hidden;
+	}
+	.content {
+		padding: 1.4em;
+		overflow-y: auto;
+	}
+	.right {
+		height: 100vh;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
 	}
 </style>

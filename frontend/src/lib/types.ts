@@ -1,7 +1,7 @@
 export type UUID = string;
 export type ISODateTime = string;
 
-export type WorkspaceRole = 'ownder' | 'admin' | 'member' | 'viewer';
+export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
 export type CardSeverity = string;
 
 export type User = {
@@ -19,6 +19,14 @@ export type Workspace = {
 export type WorkspaceMember = {
 	workspace_id: UUID;
 	user_id: UUID;
+	role: WorkspaceRole;
+};
+
+export type WorkspaceInfo = {
+	id: UUID;
+	name: string;
+	color: string;
+	owner: string;
 	role: WorkspaceRole;
 };
 

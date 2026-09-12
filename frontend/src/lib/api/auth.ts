@@ -20,7 +20,7 @@ export function register(payload: CreateUserPayload): Promise<RegisterResponse> 
 }
 
 export function logout():Promise<void>{
-    return apiPost<void>('logout')
+    return apiPost<void>('/logout')
 }
 
 export function deleteMe(): Promise<{success:boolean}>{

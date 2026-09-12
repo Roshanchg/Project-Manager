@@ -16,7 +16,7 @@
 
 		try {
 			await login({ email, password });
-			await goto(resolve('/dashboard'));
+			await goto(resolve('/workspace'));
 		} catch (err) {
 			errorMessage = err instanceof ApiError ? err.message : 'Somthing went wrong. IDK ';
 		} finally {
@@ -85,6 +85,7 @@
 		margin: 0 0 0.5rem;
 		font-size: 1.5rem;
 		color: #172b4d;
+		text-align: center;
 	}
 
 	.field {
@@ -129,7 +130,9 @@
 		border-radius: 6px;
 		font-size: 0.85rem;
 	}
-
+	.hint {
+		text-align: center;
+	}
 	.hint a {
 		color: #0052cc;
 		text-decoration: none;

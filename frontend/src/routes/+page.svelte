@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	onMount(() => {
-		goto(resolve('/dashboard'));
+		goto(resolve('/workspace'));
 	});
 </script>
 

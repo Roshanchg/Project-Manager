@@ -16,7 +16,7 @@
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		goto(href);
 	}
-	let isActive = $derived(page.url.pathname === href);
+	let isActive = $derived(page.url.pathname === href || page.url.pathname.startsWith(href + '/'));
 </script>
 
 <button type="button" class="nav-item" class:active={isActive} onclick={handleClick} {disabled}>

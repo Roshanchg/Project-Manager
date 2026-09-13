@@ -2,6 +2,8 @@
 	import type { WorkspaceInfo } from '$lib/types';
 
 	import WorkspaceCard from '$lib/components/layout/WorkspaceCard.svelte';
+	import { userStore } from '$lib/stores/user.svelte';
+	// let workspaceFormActive = $state(false);
 	let workspaces = $state<WorkspaceInfo[]>([
 		{
 			id: '1',
@@ -39,16 +41,83 @@
 			role: 'member'
 		}
 	]);
-	function createNewWorkspace() {}
+	let formName = $state('');
+	let dialogEl = $state<HTMLDialogElement | null>(null);
+	let dialogueMode = $state<'create' | 'edit'>('create');
+	let editingWorkspace = $state<WorkspaceInfo | null>(null);
+	let formColor = $state('#4979E0');
+
+	function openCreate() {
+		formName = '';
+		formColor = '#4979E0';
+		dialogueMode = 'create';
+		editingWorkspace = null;
+		dialogEl?.showModal();
+	}
+	function closeCreate() {
+		formName = '';
+		formColor = '#4979E0';
+		dialogEl?.close();
+	}
+	function createNewWorkspace() {
+		openCreate();
+	}
+
+	function openEdit(workspace: WorkspaceInfo) {
+		editingWorkspace = workspace;
+		dialogueMode = 'edit';
+		formName = editingWorkspace!.name;
+		formColor = editingWorkspace!.color;
+		dialogEl?.showModal();
+	}
+
+	function handleCreate() {
+		let newWorkspace: WorkspaceInfo = {
+			id: crypto.randomUUID().toString(),
+			name: formName,
+			color: formColor,
+			owner: userStore.user!.full_name,
+			role: 'owner'
+		};
+		workspaces.push(newWorkspace);
+	}
+	function handleEdit() {
+		workspaces = workspaces.map((w) =>
+			w.id === editingWorkspace?.id ? { ...w, name: formName, color: formColor } : w
+		);
+		editingWorkspace = null;
+	}
+
+	function handleSubmit(e: SubmitEvent) {
+		console.log(formColor);
+		e.stopPropagation();
+		e.preventDefault();
+		if (dialogueMode === 'create') {
+			handleCreate();
+		} else if (dialogueMode === 'edit') {
+			handleEdit();
+		}
+		formName = '';
+		formColor = '#4979E0';
+		editingWorkspace = null;
+		closeCreate();
+	}
+	function handleBackdrop(e: MouseEvent) {
+		if (e.target === dialogEl) {
+			closeCreate();
+		}
+	}
+
+	function handleRemove(workspace: WorkspaceInfo) {
+		workspaces = workspaces.filter((w) => w.id !== workspace.id);
+	}
 </script>
 
 <h3>Workspaces</h3>
 <span class="support-span">Manage Your Workspaces</span>
 <div class="workspace-cards">
 	{#each workspaces as workspace (workspace.id)}
-		<WorkspaceCard
-			workspace={workspace}
-		></WorkspaceCard>
+		<WorkspaceCard {workspace} onDelete={handleRemove} onEdit={openEdit}></WorkspaceCard>
 	{/each}
 	<button class="insert-card" onclick={createNewWorkspace}>
 		<svg
@@ -69,6 +138,30 @@
 		</svg>
 		<span>Add New Workspace</span>
 	</button>
+	<dialog class="new-workspace-form" bind:this={dialogEl} onclick={handleBackdrop}>
+		<form onsubmit={handleSubmit}>
+			<h1>{dialogueMode === 'create' ? 'Create New Workspace' : 'Edit Workspace'}</h1>
+			<label class="name">
+				<span>Name</span>
+				<input
+					class="inp"
+					type="text"
+					placeholder="Enter workspace name"
+					required
+					minlength="3"
+					bind:value={formName}
+				/>
+			</label>
+			<label class="color">
+				<span>Color</span>
+				<input class="color-inp" type="color" bind:value={formColor} />
+			</label>
+			<button class="submit" type="submit">
+				{dialogueMode === 'create' ? 'Create New Workspace' : 'Confirm Edit'}
+			</button>
+			<button type="button" onclick={closeCreate}>Cancel</button>
+		</form>
+	</dialog>
 </div>
 
 <style>
@@ -86,6 +179,7 @@
 		display: grid;
 		padding-top: 1em;
 		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		grid-auto-rows: 180px;
 		gap: 1.6em;
 	}
 	.insert-card {
@@ -94,7 +188,6 @@
 		flex-direction: column;
 		justify-content: center;
 		background-color: #f5f5f5;
-
 		border-radius: 16px;
 		border: 1px dashed #888888;
 		outline: none;
@@ -106,5 +199,103 @@
 	}
 	.insert-card:hover {
 		background-color: #f0f0f0;
+	}
+	.new-workspace-form * {
+		box-sizing: border-box;
+	}
+	.new-workspace-form {
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		padding: 2em;
+		outline: none;
+		border: 2px solid #d2d2d2;
+		border-radius: 14px;
+		align-items: center;
+		background-color: white;
+		> form {
+			width: 100%;
+		}
+		> form > h1 {
+			margin: 0;
+			font-size: 18px;
+			margin-bottom: 1em;
+		}
+		.name {
+			display: flex;
+			flex-direction: column;
+			width: 100%;
+			> span,
+			> input {
+				width: 100%;
+			}
+			.inp {
+				border-radius: 8px;
+				border: 1px solid #d1d1d1;
+				padding: 4px 8px;
+				height: 36px;
+				margin-bottom: 8px;
+			}
+			> span {
+				font-size: 14px;
+				text-align: left;
+				height: 18px;
+				font-weight: 550;
+				opacity: 70%;
+			}
+		}
+		> form > button {
+			border-radius: 8px;
+			cursor: pointer;
+			width: 100%;
+			border: none;
+			background-color: transparent;
+		}
+		> form > button:active {
+			box-shadow: none;
+		}
+		> form > .submit {
+			height: 40px;
+			background-color: #005fb8;
+			border: 1px solid #0051b8;
+			color: white;
+			box-shadow: 4px 4px 12px #aaaaaa;
+		}
+	}
+	dialog:not([open]) {
+		display: none;
+	}
+	dialog::backdrop {
+		backdrop-filter: blur(2px);
+	}
+
+	.color {
+		margin-bottom: 1em;
+		width: 100%;
+		> .color-inp {
+			height: 28px;
+			padding: 0;
+			border: 1px solid #bdbdbd;
+			border-radius: 8px;
+			cursor: pointer;
+			background: none;
+			width: 100%;
+			margin-bottom: 1em;
+		}
+		> span {
+			font-size: 14px;
+			text-align: left;
+			height: 18px;
+			font-weight: 550;
+			opacity: 70%;
+		}
+	}
+	input[type='color']::-webkit-color-swatch-wrapper {
+		padding: 2px;
+	}
+
+	input[type='color']::-webkit-color-swatch {
+		border: none;
+		border-radius: 6px;
 	}
 </style>

@@ -37,6 +37,17 @@ export type Board = {
 	workspace_id: UUID;
 };
 
+export type BoardInfo = {
+	id: UUID;
+	name: string;
+	totalCards: number;
+};
+
+export type BoardColor = {
+	name: string;
+	from: string;
+	to: string;
+};
 export type BoardList = {
 	id: UUID;
 	name: string;

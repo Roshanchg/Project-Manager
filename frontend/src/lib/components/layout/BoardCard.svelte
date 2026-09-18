@@ -1,13 +1,16 @@
 <script lang="ts">
-	import type { WorkspaceInfo } from '$lib/types';
-	import { resolve } from '$app/paths';
+	import type { BoardInfo } from '$lib/types';
+    import {  getBoardColor } from '$lib/boardColors';
+	// import { resolve } from '$app/paths';
+
+
 
 	type Props = {
-		workspace: WorkspaceInfo;
-		onEdit?: (workspace: WorkspaceInfo) => void;
-		onDelete?: (workspace: WorkspaceInfo) => void;
+		board: BoardInfo;
+		onEdit?: (board: BoardInfo) => void;
+		onDelete?: (board: BoardInfo) => void;
 	};
-	let { workspace, onEdit, onDelete }: Props = $props();
+	let { board, onEdit, onDelete }: Props = $props();
 
 	let menuEl = $state<HTMLDetailsElement | null>(null);
 
@@ -18,23 +21,24 @@
 		e.stopPropagation();
 		e.preventDefault();
 		menuClose();
-		onEdit?.(workspace);
+		onEdit?.(board);
 	}
 	function handleDelete(e: MouseEvent) {
 		e.stopPropagation();
 		e.preventDefault();
 		menuClose();
-		onDelete?.(workspace);
+		onDelete?.(board);
 	}
 </script>
 
 <a
-	class="workspace-card"
-	href={resolve(`/workspace/${workspace.id}`)}
-	style:--color={workspace.color}
+	class="board-card"
+	href="#f"
+	style:--colorFrom={getBoardColor(board.id).from}
+    style:--colorTo={getBoardColor(board.id).to}
 >
 	<div class="header">
-		<strong class="name">{workspace.name}</strong>
+		<strong class="name">{board.name}</strong>
 		<details aria-label="more options" class="menu" bind:this={menuEl}>
 			<summary
 				onclick={(e: MouseEvent) => {
@@ -94,26 +98,15 @@
 		</details>
 	</div>
 	<div class="footer">
-		<details class="user-menu">
-			<summary class="trigger">
-				<span class="avatar">{workspace.owner.charAt(0).toUpperCase()}</span>
-			</summary>
-
-			<div class="panel">
-				<div class="info">
-					<strong>{workspace.owner}</strong>
-				</div>
-			</div>
-		</details>
-		<code><strong>{workspace.role}</strong></code>
+		<span class="card-amount-label">Total Cards: </span>
+        <span class="card-amount-value">{board.totalCards}</span>
 	</div>
 </a>
 
 <style>
-	.workspace-card {
+	.board-card {
 		text-decoration: none;
 		color: black;
-		background-color: var(--color);
 		padding: 1.5em;
 		cursor: pointer;
 		display: flex;
@@ -122,6 +115,11 @@
 		min-height: 90px;
 		border-radius: 16px;
 		box-shadow: 4px 4px 18px var(--color);
+		background: linear-gradient(135deg, 
+			color-mix(in srgb, var(--colorFrom) 60%, transparent) 0%,
+
+		 	color-mix(in srgb, var(--colorTo) 60%, transparent) 60%);
+		box-shadow: inset 0px 4px 12px var(--colorFrom);
 	}
 	.name {
 		font-size: 18px;
@@ -186,50 +184,12 @@
 		justify-content: space-between;
 		align-items: center;
 		position: relative;
-	}
-	.trigger {
-		list-style: none;
-		background: #0052cc;
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 4px 4px 12px #00000032;
-	}
-	.trigger:active {
-		box-shadow: none;
-	}
-	.avatar {
-		color: white;
-		font-weight: bold;
-		font-size: 16px;
-	}
-	.panel {
-		position: absolute;
-		background-color: #ffffff;
-		padding: 0.5em 1em;
-		border: 1px solid #dfe1e6;
-		top: calc(100% + 0.4rem);
-		left: 10px;
-		z-index: 10;
-		cursor: text;
-		border-radius: 8px;
-		box-shadow: 0px 4px 12px #dfe1e6;
-	}
-	code {
-		padding: 2px 6px;
-		border-radius: 4px;
-		text-align: center;
-		border: 1px solid #dedede;
-		background-color: white;
-		color: rgb(42, 126, 209);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		> strong {
-			font-size: 16px;
+		.card-amount-label{
+			font-style: italic;
+		}
+		.card-amount-value{
+			font-weight: 550;
 		}
 	}
+	
 </style>

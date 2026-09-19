@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { BoardInfo } from '$lib/types';
     import {  getBoardColor } from '$lib/boardColors';
+	import { page } from '$app/state';
 	// import { resolve } from '$app/paths';
 
 
@@ -13,7 +14,7 @@
 	let { board, onEdit, onDelete }: Props = $props();
 
 	let menuEl = $state<HTMLDetailsElement | null>(null);
-
+	let workspaceId=$derived(page.params.id);
 	function menuClose() {
 		if (menuEl) menuEl.open = false;
 	}
@@ -33,7 +34,8 @@
 
 <a
 	class="board-card"
-	href="#f"
+	// eslint-disable-next-line svelte/no-navigation-without-resolve
+	href={`/workspace/${workspaceId}/boards/${board.id}`}
 	style:--colorFrom={getBoardColor(board.id).from}
     style:--colorTo={getBoardColor(board.id).to}
 >
@@ -114,7 +116,6 @@
 		justify-content: space-between;
 		min-height: 90px;
 		border-radius: 16px;
-		box-shadow: 4px 4px 18px var(--color);
 		background: linear-gradient(135deg, 
 			color-mix(in srgb, var(--colorFrom) 60%, transparent) 0%,
 

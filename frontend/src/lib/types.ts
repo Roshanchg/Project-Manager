@@ -55,6 +55,13 @@ export type BoardList = {
 	position: number;
 };
 
+export type ListInfo = {
+	id: UUID;
+	name: string;
+	position: number;
+	cards: CardInfo[];
+};
+
 export type Card = {
 	id: UUID;
 	name: string;
@@ -64,6 +71,20 @@ export type Card = {
 	due_date: ISODateTime;
 	list_id: UUID;
 };
+
+
+export type CardInfo = {
+	id: UUID;
+	name: string;
+	severity: CardSeverity;
+	tag: string;
+	due_date: ISODateTime;
+};
+export type CardDetails={
+	id:UUID;
+	desc: string | null;
+	checklist: ChecklistInfo[];
+}
 
 export type Checklist = {
 	id: UUID;
@@ -80,6 +101,18 @@ export type ChecklistItem = {
 	checked_by: UUID | null;
 };
 
+export type ChecklistItemInfo = {
+	id: UUID;
+	val: string;
+	position: number;
+	checked: boolean;
+	checked_by: UUID | null;
+};
+export type ChecklistInfo = {
+	id: UUID;
+	name: string;
+	items: ChecklistItemInfo[];
+};
 // Request
 
 export type CreateUserPayload = {

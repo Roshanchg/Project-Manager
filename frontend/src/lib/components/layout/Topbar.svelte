@@ -44,7 +44,7 @@
 		justify-content: space-between;
 		gap: 1rem;
 		padding: 0.75rem 1.25rem;
-		background: white;
+		background: transparent;
 		border-bottom: 1px solid #dfe1e6;
 		height: 40px;
 		flex-shrink: 0;
@@ -74,6 +74,13 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
+		background-color: transparent;
+		box-sizing: border-box;
+		padding: 4px 8px;
+		border-radius: 12px;
+		>button{
+			background-color: transparent;
+		}
 	}
 
 	.icon-btn {
@@ -87,7 +94,6 @@
 		border: none;
 		color: #42526e;
 		cursor: pointer;
-		transition: background 0.15s;
 	}
 
 	.icon-btn:hover {

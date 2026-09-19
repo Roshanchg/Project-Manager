@@ -66,6 +66,7 @@
 	.content {
 		padding: 1.4em;
 		overflow-y: auto;
+		overflow-x: hidden;
 	}
 	.right {
 		height: 100vh;
